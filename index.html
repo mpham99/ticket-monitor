@@ -528,7 +528,7 @@
 
 <script>
   const MONITORED_IDS = [1058172, 1058173, 1058174, 1058175];
-  const API_URL = 'https://api-v2.ticketbox.vn/marketplace/api/v1/resale-events/25671?page=1&limit=24';
+  const API_BASE = 'https://api-v2.ticketbox.vn/marketplace/api/v1/resale-events/25671';
   const PROXY = 'https://corsproxy.io/?url=';
 
   let monitorInterval = null;
@@ -556,16 +556,35 @@
   }
 
   async function fetchTickets() {
-    log('Fetching ticket data...');
-    try {
-      const res = await fetch(PROXY + encodeURIComponent(API_URL));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      return json.data?.results || [];
-    } catch (e) {
-      log('Fetch error: ' + e.message, 'alert');
-      return null;
+    const allTickets = [];
+    let page = 1;
+    let hasMore = true;
+
+    log('Fetching page 1...');
+    while (hasMore) {
+      try {
+        const url = `${API_BASE}?page=${page}&limit=24`;
+        const res = await fetch(PROXY + encodeURIComponent(url));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        const results = json.data?.results || [];
+        allTickets.push(...results);
+
+        hasMore = json.data?.pagination?.hasMore === true;
+        if (hasMore) {
+          page++;
+          log(`Page ${page - 1} done (${results.length} tickets) — fetching page ${page}...`);
+        } else {
+          log(`All pages fetched. ${page} page(s), ${allTickets.length} total tickets.`, 'success');
+        }
+      } catch (e) {
+        log('Fetch error on page ' + page + ': ' + e.message, 'alert');
+        return allTickets.length > 0 ? allTickets : null;
+      }
     }
+
+    return allTickets;
   }
 
   function renderTickets(tickets, threshold) {
