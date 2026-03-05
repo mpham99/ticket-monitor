@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAI HOME CONCERT — Ticket Price Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a38;
+    --accent: #ff3c5a;
+    --accent2: #ff9500;
+    --green: #00e676;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid BG */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,60,90,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,60,90,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-left h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .header-left h1 span {
+    color: var(--accent);
+  }
+
+  .header-left .subtitle {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .pulse.active {
+    background: var(--green);
+    animation: pulse 1.5s infinite;
+  }
+
+  .pulse.error { background: var(--accent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,230,118,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0,230,118,0); }
+  }
+
+  /* SETUP PANEL */
+  .setup-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+
+  .setup-panel h2 {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 20px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  .threshold-display {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent2);
+    margin-top: 4px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 11px 22px;
+    border-radius: 7px;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #ff5a73; transform: translateY(-1px); }
+  .btn-primary:disabled { background: #333; color: var(--muted); cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .btn-stop {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  .btn-stop:hover { background: rgba(255,60,90,0.1); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+
+  .stat-card .label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+
+  .stat-card .value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.red { color: var(--accent); }
+  .stat-card .value.orange { color: var(--accent2); }
+
+  /* TICKETS TABLE */
+  .tickets-section h2 {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+  }
+
+  .tickets-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ticket-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr auto;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .ticket-row.monitored {
+    border-color: rgba(255, 149, 0, 0.3);
+    background: rgba(255, 149, 0, 0.03);
+  }
+
+  .ticket-row.alert {
+    border-color: var(--accent);
+    background: rgba(255, 60, 90, 0.05);
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,60,90,0); }
+    50% { box-shadow: 0 0 20px rgba(255,60,90,0.15); }
+  }
+
+  .ticket-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .ticket-type {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .ticket-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  .badge-standing { background: rgba(241,182,90,0.15); color: #f1b65a; }
+  .badge-seated { background: rgba(91,190,232,0.15); color: #5bbee8; }
+  .badge-monitored { background: rgba(255,149,0,0.2); color: var(--accent2); }
+
+  .ticket-qty {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .ticket-price {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .ticket-price.below { color: var(--accent); }
+  .ticket-price.above { color: var(--text); }
+
+  .ticket-price .per {
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-weight: 400;
+    display: block;
+  }
+
+  .btn-link {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-family: var(--mono);
+    display: inline-block;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .btn-link:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* LOG */
+  .log-section {
+    margin-top: 28px;
+  }
+
+  .log-section h2 {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+  }
+
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-entry { display: flex; gap: 12px; }
+  .log-time { color: #444; flex-shrink: 0; }
+  .log-msg.info { color: var(--muted); }
+  .log-msg.success { color: var(--green); }
+  .log-msg.alert { color: var(--accent); }
+  .log-msg.warn { color: var(--accent2); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+  }
+
+  /* Config note */
+  .config-note {
+    background: rgba(255,149,0,0.07);
+    border: 1px solid rgba(255,149,0,0.2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent2);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  .config-note strong { color: var(--text); }
+
+  @media (max-width: 700px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .ticket-row { grid-template-columns: 1fr; }
+    .ticket-row > * { text-align: left !important; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-left">
+      <h1>GAI HOME <span>CONCERT</span></h1>
+      <div class="subtitle">Resale Ticket Price Monitor · April 26 2026</div>
+    </div>
+    <div class="status-badge">
+      <div class="pulse" id="statusDot"></div>
+      <span id="statusText">Idle</span>
+    </div>
+  </header>
+
+  <!-- Setup Panel -->
+  <div class="setup-panel">
+    <h2>⚙ Configuration</h2>
+    <div class="config-note">
+      <strong>EmailJS Setup Required:</strong> Create a free account at <strong>emailjs.com</strong>, set up a service + email template, and paste your credentials below.<br>
+      Template variables needed: <strong>{{ticket_name}}</strong>, <strong>{{ticket_price}}</strong>, <strong>{{ticket_link}}</strong>, <strong>{{ticket_qty}}</strong>, <strong>{{to_email}}</strong>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>EmailJS Public Key</label>
+        <input type="text" id="ejPublicKey" placeholder="e.g. abc123XYZ..." />
+      </div>
+      <div class="form-group">
+        <label>EmailJS Service ID</label>
+        <input type="text" id="ejServiceId" placeholder="e.g. service_xxxxxx" />
+      </div>
+      <div class="form-group">
+        <label>EmailJS Template ID</label>
+        <input type="text" id="ejTemplateId" placeholder="e.g. template_xxxxxx" />
+      </div>
+      <div class="form-group">
+        <label>Recipient Email</label>
+        <input type="email" id="emailTo" placeholder="you@example.com" />
+      </div>
+      <div class="form-group full">
+        <label>Price Threshold (VND) — alert when price falls BELOW this</label>
+        <input type="number" id="threshold" value="6000000" min="0" step="100000" oninput="updateThresholdDisplay()" />
+        <div class="threshold-display" id="thresholdDisplay">6,000,000 VND</div>
+      </div>
+      <div class="form-group full">
+        <label>Poll Interval (seconds)</label>
+        <input type="number" id="pollInterval" value="60" min="10" max="3600" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="startBtn" onclick="startMonitor()">▶ Start Monitoring</button>
+      <button class="btn-stop" id="stopBtn" onclick="stopMonitor()" disabled>■ Stop</button>
+      <button class="btn-secondary" onclick="fetchOnce()">⟳ Fetch Once</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">Last Fetch</div>
+      <div class="value" id="statLastFetch" style="font-size:1rem; padding-top:4px; color:var(--muted)">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Tickets Found</div>
+      <div class="value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Monitored IDs</div>
+      <div class="value orange">4</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Alerts Sent</div>
+      <div class="value red" id="statAlerts">0</div>
+    </div>
+  </div>
+
+  <!-- Tickets -->
+  <div class="tickets-section">
+    <h2>🎫 Current Listings (Monitored IDs highlighted)</h2>
+    <div class="tickets-grid" id="ticketsGrid">
+      <div class="empty-state">No data yet. Click "Fetch Once" or "Start Monitoring".</div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section">
+    <h2>📋 Activity Log</h2>
+    <div class="log-box" id="logBox">
+      <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-msg info">Ready. Configure settings and start monitoring.</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MONITORED_IDS = [1058172, 1058173, 1058174, 1058175];
+  const API_URL = 'https://api-v2.ticketbox.vn/marketplace/api/v1/resale-events/25671?page=1&limit=24';
+  const PROXY = 'https://corsproxy.io/?url=';
+
+  let monitorInterval = null;
+  let alertsSent = 0;
+  let notifiedCodes = new Set();
+
+  function fmt(n) { return Number(n).toLocaleString('vi-VN'); }
+
+  function now() {
+    return new Date().toLocaleTimeString('en-GB');
+  }
+
+  function log(msg, type = 'info') {
+    const box = document.getElementById('logBox');
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    el.innerHTML = `<span class="log-time">${now()}</span><span class="log-msg ${type}">${msg}</span>`;
+    box.prepend(el);
+    if (box.children.length > 100) box.lastChild.remove();
+  }
+
+  function updateThresholdDisplay() {
+    const v = parseInt(document.getElementById('threshold').value) || 0;
+    document.getElementById('thresholdDisplay').textContent = fmt(v) + ' VND';
+  }
+
+  async function fetchTickets() {
+    log('Fetching ticket data...');
+    try {
+      const res = await fetch(PROXY + encodeURIComponent(API_URL));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      return json.data?.results || [];
+    } catch (e) {
+      log('Fetch error: ' + e.message, 'alert');
+      return null;
+    }
+  }
+
+  function renderTickets(tickets, threshold) {
+    const grid = document.getElementById('ticketsGrid');
+    if (!tickets || !tickets.length) {
+      grid.innerHTML = '<div class="empty-state">No listings found.</div>';
+      return;
+    }
+
+    document.getElementById('statTotal').textContent = tickets.length;
+
+    // Sort: monitored first, then by price
+    const sorted = [...tickets].sort((a, b) => {
+      const aM = MONITORED_IDS.includes(a.ticketTypeId);
+      const bM = MONITORED_IDS.includes(b.ticketTypeId);
+      if (aM && !bM) return -1;
+      if (!aM && bM) return 1;
+      return a.price - b.price;
+    });
+
+    grid.innerHTML = sorted.map(t => {
+      const isMonitored = MONITORED_IDS.includes(t.ticketTypeId);
+      const isBelow = t.price < threshold;
+      const isAlert = isMonitored && isBelow;
+      const isSeated = t.ticketTypeName.includes('Seated');
+
+      return `
+        <div class="ticket-row ${isAlert ? 'alert' : isMonitored ? 'monitored' : ''}">
+          <div>
+            <div class="ticket-name">${t.ticketTypeName}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+              <span class="ticket-badge ${isSeated ? 'badge-seated' : 'badge-standing'}">${isSeated ? 'Seated' : 'Standing'}</span>
+              ${isMonitored ? '<span class="ticket-badge badge-monitored">🔔 Monitored</span>' : ''}
+              ${isAlert ? '<span class="ticket-badge" style="background:rgba(255,60,90,0.2);color:var(--accent)">⚡ Below Threshold!</span>' : ''}
+            </div>
+            <div class="ticket-type">Code: ${t.code} · Order: ${t.orderCode}</div>
+          </div>
+          <div class="ticket-qty">${t.quantity}x</div>
+          <div class="ticket-price ${isBelow && isMonitored ? 'below' : 'above'}">
+            ${fmt(t.price)}
+            <span class="per">VND / ticket</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);text-align:right">
+            ${t.fullPurchase ? '⚠ Full purchase' : 'Partial OK'}
+          </div>
+          <a class="btn-link" href="${t.deeplink}" target="_blank">Buy →</a>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function sendEmailAlert(ticket) {
+    const pubKey = document.getElementById('ejPublicKey').value.trim();
+    const serviceId = document.getElementById('ejServiceId').value.trim();
+    const templateId = document.getElementById('ejTemplateId').value.trim();
+    const emailTo = document.getElementById('emailTo').value.trim();
+
+    if (!pubKey || !serviceId || !templateId || !emailTo) {
+      log('⚠ Email not sent — EmailJS credentials not configured.', 'warn');
+      return;
+    }
+
+    try {
+      emailjs.init(pubKey);
+      await emailjs.send(serviceId, templateId, {
+        to_email: emailTo,
+        ticket_name: ticket.ticketTypeName,
+        ticket_price: fmt(ticket.price) + ' VND',
+        ticket_qty: ticket.quantity + ' ticket(s)',
+        ticket_link: ticket.deeplink,
+        event_name: ticket.eventName,
+        ticket_code: ticket.code,
+      });
+      log(`📧 Email sent for ${ticket.ticketTypeName} at ${fmt(ticket.price)} VND`, 'success');
+      alertsSent++;
+      document.getElementById('statAlerts').textContent = alertsSent;
+    } catch (e) {
+      log('Email send failed: ' + (e.text || e.message), 'alert');
+    }
+  }
+
+  async function processTickets(tickets) {
+    if (!tickets) return;
+    const threshold = parseInt(document.getElementById('threshold').value) || 6000000;
+
+    renderTickets(tickets, threshold);
+    document.getElementById('statLastFetch').textContent = now();
+
+    // Check monitored tickets
+    for (const t of tickets) {
+      if (MONITORED_IDS.includes(t.ticketTypeId) && t.price < threshold) {
+        if (!notifiedCodes.has(t.code)) {
+          log(`🚨 ALERT: ${t.ticketTypeName} — ${fmt(t.price)} VND (below ${fmt(threshold)})`, 'alert');
+          notifiedCodes.add(t.code);
+          await sendEmailAlert(t);
+        }
+      }
+    }
+  }
+
+  async function fetchOnce() {
+    setStatus('fetching');
+    const tickets = await fetchTickets();
+    await processTickets(tickets);
+    setStatus(monitorInterval ? 'running' : 'idle');
+  }
+
+  function startMonitor() {
+    if (monitorInterval) return;
+    const interval = Math.max(10, parseInt(document.getElementById('pollInterval').value) || 60) * 1000;
+    log(`▶ Monitoring started. Polling every ${interval/1000}s.`, 'success');
+    setStatus('running');
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    fetchOnce();
+    monitorInterval = setInterval(fetchOnce, interval);
+  }
+
+  function stopMonitor() {
+    if (monitorInterval) {
+      clearInterval(monitorInterval);
+      monitorInterval = null;
+    }
+    log('■ Monitoring stopped.', 'warn');
+    setStatus('idle');
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+  }
+
+  function setStatus(state) {
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    dot.className = 'pulse';
+    if (state === 'running') { dot.classList.add('active'); text.textContent = 'Monitoring'; }
+    else if (state === 'fetching') { text.textContent = 'Fetching...'; }
+    else if (state === 'idle') { text.textContent = 'Idle'; }
+    else { dot.classList.add('error'); text.textContent = 'Error'; }
+  }
+
+  updateThresholdDisplay();
+</script>
+</body>
+</html>
