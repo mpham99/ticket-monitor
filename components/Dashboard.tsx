@@ -33,7 +33,7 @@ export default function Dashboard({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(
     new Set([1058172, 1058173, 1058174, 1058175])
   );
-  const [threshold, setThreshold] = useState(6000000);
+  const [threshold, setThreshold] = useState(5000000);
   const [firedCodes, setFiredCodes] = useState<Set<string>>(new Set(initialFiredCodes));
   const [alertCount, setAlertCount] = useState(0);
   const [nextFetchIn, setNextFetchIn] = useState<string>("—");
