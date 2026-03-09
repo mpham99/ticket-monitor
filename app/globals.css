@@ -1,0 +1,14 @@
+:root {
+  --bg: #0a0a0f; --surface: #111118; --surface2: #18181f; --border: #2a2a38;
+  --accent: #ff3c5a; --accent2: #ff9500; --green: #00e676; --blue: #5bbee8;
+  --text: #e8e8f0; --muted: #6b6b80;
+  --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(255,60,90,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,60,90,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
