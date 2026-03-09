@@ -291,7 +291,7 @@ export default function Dashboard({
             const isAlert = isM && isBelow;
             const isSeated = t.ticketTypeName.includes("Seated");
             return (
-              <div key={t.code} style={{ background: "var(--surface)", border: `1px solid ${isAlert ? "var(--accent)" : isM ? "rgba(255,149,0,0.3)" : "var(--border)"}`, borderRadius: 10, padding: "14px 18px", display: "grid", gridTemplateColumns: "3fr 1fr 1.2fr 1fr auto", alignItems: "center", gap: 14, background: isAlert ? "rgba(255,60,90,0.05)" : isM ? "rgba(255,149,0,0.025)" : "var(--surface)" }}>
+              <div key={t.code} style={{ background: isAlert ? "rgba(255,60,90,0.05)" : isM ? "rgba(255,149,0,0.025)" : "var(--surface)", border: `1px solid ${isAlert ? "var(--accent)" : isM ? "rgba(255,149,0,0.3)" : "var(--border)"}`, borderRadius: 10, padding: "14px 18px", display: "grid", gridTemplateColumns: "3fr 1fr 1.2fr 1fr auto", alignItems: "center", gap: 14 }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: "0.88rem" }}>{t.ticketTypeName}</div>
                   <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 5 }}>
