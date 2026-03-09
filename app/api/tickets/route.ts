@@ -1,19 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getDB, rowToListing } from '@/lib/db'
-import { runCrawl } from '@/lib/crawl-loop'
-
-const STALE_MS = 5 * 60 * 1000
 
 export async function GET() {
   try {
     const db = getDB()
 
     const run = db.prepare('SELECT * FROM crawl_runs ORDER BY crawled_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
-    const isStale = !run || (Date.now() - (run.crawled_at as number)) > STALE_MS
-
-    if (isStale) {
-      await runCrawl()
-    }
 
     const latest = db.prepare('SELECT * FROM crawl_runs ORDER BY crawled_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
     if (!latest) {

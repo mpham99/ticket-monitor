@@ -6,7 +6,7 @@ import { TicketListing, TicketType } from "@/types";
 // ── helpers ────────────────────────────────────────────────────────────────
 const fmt = (n: number) => Number(n).toLocaleString("vi-VN");
 const nowT = () => new Date().toLocaleTimeString("en-GB");
-const POLL_MS = 5 * 60 * 1000;
+const POLL_MS = 3 * 60 * 1000;
 
 interface LastCrawl {
   fetchedAt: string;
@@ -36,15 +36,13 @@ export default function Dashboard({
   const [threshold, setThreshold] = useState(6000000);
   const [firedCodes, setFiredCodes] = useState<Set<string>>(new Set(initialFiredCodes));
   const [alertCount, setAlertCount] = useState(0);
-  const [isMonitoring, setIsMonitoring] = useState(false);
   const [nextFetchIn, setNextFetchIn] = useState<string>("—");
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | "unsupported">("default");
   const [log, setLog] = useState<Array<{ time: string; msg: string; type: string }>>([
-    { time: "--:--:--", msg: "Ready. Select tickets to watch and start monitoring.", type: "info" },
+    { time: "--:--:--", msg: "Auto-refreshing listings every 3 minutes.", type: "info" },
   ]);
-  const [status, setStatus] = useState<"idle" | "running">("idle");
 
-  const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextFetchAtRef = useRef<number | null>(null);
 
@@ -135,33 +133,19 @@ export default function Dashboard({
     }, 1000);
   }, []);
 
-  // ── monitor controls ─────────────────────────────────────────────────────
-  const startMonitor = useCallback(() => {
-    if (monitorRef.current) return;
-    setIsMonitoring(true);
-    setStatus("running");
-    addLog("▶ Monitoring started. Refreshing listings every 5 minutes.", "success");
+  // ── auto-start polling on mount ──────────────────────────────────────────
+  useEffect(() => {
     fetchListings();
     startCountdown();
-    monitorRef.current = setInterval(() => {
+    pollRef.current = setInterval(() => {
       fetchListings();
       startCountdown();
     }, POLL_MS);
-  }, [fetchListings, startCountdown, addLog]);
-
-  const stopMonitor = useCallback(() => {
-    if (monitorRef.current) { clearInterval(monitorRef.current); monitorRef.current = null; }
-    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
-    nextFetchAtRef.current = null;
-    setIsMonitoring(false);
-    setStatus("idle");
-    setNextFetchIn("—");
-    addLog("■ Monitoring stopped.", "warn");
-  }, [addLog]);
-
-  useEffect(() => () => {
-    if (monitorRef.current) clearInterval(monitorRef.current);
-    if (countdownRef.current) clearInterval(countdownRef.current);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── ticket selection ──────────────────────────────────────────────────────
@@ -180,8 +164,6 @@ export default function Dashboard({
     return a.price - b.price;
   });
 
-  const statusColor = status === "running" ? "#00e676" : "#6b6b80";
-
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 1 }}>
 
@@ -196,8 +178,8 @@ export default function Dashboard({
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface2)", border: "1px solid var(--border)", padding: "10px 16px", borderRadius: 8, fontFamily: "var(--mono)", fontSize: "0.72rem", color: "var(--muted)" }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, display: "inline-block", boxShadow: status === "running" ? `0 0 8px ${statusColor}` : "none" }} />
-          {status === "running" ? "Monitoring" : "Idle"}
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00e676", flexShrink: 0, display: "inline-block", boxShadow: "0 0 8px #00e676" }} />
+          Auto-refreshing · next in {nextFetchIn}
         </div>
       </div>
 
@@ -253,9 +235,7 @@ export default function Dashboard({
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap", alignItems: "center" }}>
-          <Btn onClick={startMonitor} disabled={isMonitoring} variant="primary">▶ Start Monitoring</Btn>
-          <Btn onClick={stopMonitor} disabled={!isMonitoring} variant="stop">■ Stop</Btn>
-          <Btn onClick={fetchListings} variant="secondary">↓ Refresh from DB</Btn>
+          <Btn onClick={fetchListings} variant="secondary">↓ Refresh Now</Btn>
           {notifPerm !== "granted" && <Btn onClick={requestNotifPerm} variant="secondary">🔔 Enable Notifications</Btn>}
         </div>
 
@@ -271,7 +251,7 @@ export default function Dashboard({
       {/* STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 22 }}>
         <StatCard label="Last Crawl" value={lastCrawl ? new Date(lastCrawl.fetchedAt).toLocaleTimeString() : "—"} small />
-        <StatCard label="Next Crawl" value={nextFetchIn} small />
+        <StatCard label="Next Refresh" value={nextFetchIn} small />
         <StatCard label="Total Listings" value={listings.length} color="blue" />
         <StatCard label="Watching" value={selectedIds.size} color="orange" />
         <StatCard label="Alerts Fired" value={alertCount} color="red" />
@@ -283,7 +263,7 @@ export default function Dashboard({
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           {sorted.length === 0 ? (
             <div style={{ textAlign: "center", padding: 40, color: "var(--muted)", fontFamily: "var(--mono)", fontSize: "0.72rem" }}>
-              No listings yet. Click "Crawl Now" or "Start Monitoring".
+              No listings yet. Data will load automatically.
             </div>
           ) : sorted.map((t) => {
             const isM = selectedIds.has(t.ticketTypeId);
