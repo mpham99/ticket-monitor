@@ -10,7 +10,8 @@ declare global {
 export function getDB(): Database.Database {
   if (global._sqliteDB) return global._sqliteDB
 
-  const dataDir = path.join(process.cwd(), 'data')
+  // Vercel's filesystem is read-only except for /tmp
+  const dataDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
   const db = new Database(path.join(dataDir, 'tickets.db'))
