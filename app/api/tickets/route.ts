@@ -1,23 +1,33 @@
 import { NextResponse } from 'next/server'
 import { getDB, rowToListing } from '@/lib/db'
+import { runCrawl } from '@/lib/crawl-loop'
+
+const STALE_MS = 5 * 60 * 1000
 
 export async function GET() {
   try {
     const db = getDB()
 
     const run = db.prepare('SELECT * FROM crawl_runs ORDER BY crawled_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
-    if (!run) {
+    const isStale = !run || (Date.now() - (run.crawled_at as number)) > STALE_MS
+
+    if (isStale) {
+      await runCrawl()
+    }
+
+    const latest = db.prepare('SELECT * FROM crawl_runs ORDER BY crawled_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
+    if (!latest) {
       return NextResponse.json({ listings: [], lastCrawl: null })
     }
 
-    const rows = db.prepare('SELECT * FROM listings WHERE crawl_run_id = ?').all(run.id) as Record<string, unknown>[]
+    const rows = db.prepare('SELECT * FROM listings WHERE crawl_run_id = ?').all(latest.id) as Record<string, unknown>[]
 
     return NextResponse.json({
       listings: rows.map(rowToListing),
       lastCrawl: {
-        fetchedAt: new Date(run.crawled_at as number).toISOString(),
-        totalListings: run.total_listings,
-        pages: run.pages_fetched,
+        fetchedAt: new Date(latest.crawled_at as number).toISOString(),
+        totalListings: latest.total_listings,
+        pages: latest.pages_fetched,
         durationMs: 0,
       },
     })

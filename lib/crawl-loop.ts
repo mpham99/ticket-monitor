@@ -1,8 +1,6 @@
 import { crawlAllPages } from './crawler'
 import { getDB } from './db'
 
-const POLL_MS = 5 * 60 * 1000
-
 async function runCrawl() {
   console.log('[crawl-loop] Starting crawl...')
   try {
@@ -48,7 +46,4 @@ async function runCrawl() {
   }
 }
 
-export function startCrawlLoop() {
-  runCrawl()
-  setInterval(runCrawl, POLL_MS)
-}
+export { runCrawl }
