@@ -6,7 +6,7 @@ import { TicketListing, TicketType } from "@/types";
 // ── helpers ────────────────────────────────────────────────────────────────
 const fmt = (n: number) => Number(n).toLocaleString("vi-VN");
 const nowT = () => new Date().toLocaleTimeString("en-GB");
-const POLL_MS = 3 * 60 * 1000;
+const POLL_MS = 2 * 60 * 1000;
 
 interface LastCrawl {
   fetchedAt: string;
